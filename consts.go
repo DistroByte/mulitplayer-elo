@@ -1,4 +1,4 @@
-package elo
+package main
 
 const (
 	InitialElo = 1000

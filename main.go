@@ -1,4 +1,4 @@
-package elo
+package main
 
 func NewLeague() *League {
 	return &League{

@@ -1,4 +1,4 @@
-package elo
+package main
 
 import "time"
 

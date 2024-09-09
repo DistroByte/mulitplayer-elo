@@ -1,4 +1,4 @@
-package elo_test
+package main_test
 
 import (
 	"testing"
