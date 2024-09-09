@@ -17,7 +17,7 @@ package main
 
 import (
     "fmt"
-    "github.com/distrobyte/multiplayer-elo"
+    elo "github.com/distrobyte/multiplayer-elo"
 )
 
 func main() {
