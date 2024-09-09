@@ -2,7 +2,7 @@
 
 This is a simple implementation of the Elo rating system for multiplayer games. The system is based on the [Elo rating system](https://en.wikipedia.org/wiki/Elo_rating_system) which is a method for calculating the relative skill levels of players in two-player games such as chess. The system is used in many games and sports to rank players based on their performance.
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/distrobyte/multiplayer-elo)](https://goreportcard.com/report/github.com/distrobyte/multiplayer-elo)
+[![Go Report Card](https://goreportcard.com/badge/github.com/distrobyte/multielo)](https://goreportcard.com/report/github.com/distrobyte/multielo)
 
 ## Installation
 
@@ -17,7 +17,7 @@ package main
 
 import (
     "fmt"
-    elo "github.com/distrobyte/multiplayer-elo"
+    elo "github.com/distrobyte/multielo"
 )
 
 func main() {

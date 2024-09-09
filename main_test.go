@@ -1,10 +1,10 @@
-package multiplayer_elo_test
+package multielo_test
 
 import (
 	"testing"
 	"time"
 
-	elo "github.com/distrobyte/multiplayer-elo"
+	elo "github.com/distrobyte/melo"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,4 +1,4 @@
-module github.com/distrobyte/multiplayer-elo
+module github.com/distrobyte/multielo
 
 go 1.23.0
 
