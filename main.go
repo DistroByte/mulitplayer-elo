@@ -260,6 +260,10 @@ func (l *League) ResetPlayers() {
 	}
 }
 
+func (l *League) ResetMatches() {
+	l.Matches = []Match{}
+}
+
 func (l *League) GetPlayers() []*Player {
 	return l.Players
 }
