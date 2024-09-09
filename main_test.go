@@ -1,4 +1,4 @@
-package main_test
+package multiplayer_elo_test
 
 import (
 	"testing"

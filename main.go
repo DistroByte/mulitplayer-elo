@@ -1,4 +1,4 @@
-package main
+package multiplayer_elo
 
 import (
 	"errors"
