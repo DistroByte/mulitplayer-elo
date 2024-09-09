@@ -7,7 +7,7 @@ This is a simple implementation of the Elo rating system for multiplayer games. 
 ## Installation
 
 ```bash
-go get github.com/distrobyte/multiplayer-elo
+go get github.com/distrobyte/multielo
 ```
 
 ## Usage

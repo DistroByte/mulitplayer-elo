@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	elo "github.com/distrobyte/melo"
+	elo "github.com/distrobyte/multielo"
 	"github.com/stretchr/testify/assert"
 )
 
