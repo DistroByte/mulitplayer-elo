@@ -1,0 +1,317 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>multiplayer-elo: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/distrobyte/multiplayer-elo/main.go (100.0%)</option>
+				
+				<option value="file1">github.com/distrobyte/multiplayer-elo/match.go (93.0%)</option>
+				
+				<option value="file2">github.com/distrobyte/multiplayer-elo/player.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package elo
+
+func NewLeague() *League <span class="cov10" title="15">{
+        return &amp;League{
+                Players: []*Player{},
+                Matches: []Match{},
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package elo
+
+import (
+        "fmt"
+        "math"
+        "time"
+)
+
+func (l *League) AddMatch(date time.Time, results ...*MatchResult) ([]MatchDiff, error) <span class="cov4" title="3">{
+        if len(l.Players) == 0 </span><span class="cov1" title="1">{
+                return nil, ErrNoPlayers
+        }</span>
+
+        <span class="cov3" title="2">populatedResults := make([]*MatchResult, 0, len(results))
+        matchDiff := make([]MatchDiff, 0, len(results))
+
+        // ensure all drivers are registered and flesh out the results with ELOs
+        for _, result := range results </span><span class="cov7" title="7">{
+                found := false
+                for _, player := range l.Players </span><span class="cov9" title="14">{
+                        if player == nil </span><span class="cov0" title="0">{
+                                return []MatchDiff{}, fmt.Errorf("nil player found. not recording match")
+                        }</span>
+
+                        <span class="cov9" title="14">if result.Player == nil </span><span class="cov1" title="1">{
+                                return []MatchDiff{}, fmt.Errorf("nil player found. not recording match")
+                        }</span>
+
+                        <span class="cov9" title="13">if player.Name == result.Player.Name </span><span class="cov6" title="6">{
+                                result.Player.ELO = player.ELO
+                                populatedResults = append(populatedResults, result)
+                                found = true
+                                break</span>
+                        }
+                }
+
+                <span class="cov6" title="6">if !found </span><span class="cov0" title="0">{
+                        return []MatchDiff{}, fmt.Errorf("player %q not found. not recording match", result.Player.Name)
+                }</span>
+        }
+
+        // calculate the ELO changes
+        <span class="cov1" title="1">n := len(populatedResults)
+        kValue := 32 / (n - 1)
+
+        // loop over every result
+        for player, result := range populatedResults </span><span class="cov5" title="4">{
+                curELO := result.Player.ELO
+                curPosition := result.Position
+
+                // loop over every other result
+                for opponentPlayer, opponentResult := range populatedResults </span><span class="cov10" title="16">{
+                        // skip comparing the driver to themselves
+                        if player == opponentPlayer </span><span class="cov5" title="4">{
+                                continue</span>
+                        }
+
+                        <span class="cov9" title="12">opponentELO := opponentResult.Player.ELO
+                        opponentPosition := opponentResult.Position
+
+                        // calculate the expected score
+                        var S float64
+
+                        // if the driver finished higher than the other driver
+                        if curPosition &lt; opponentPosition </span><span class="cov6" title="6">{
+                                S = 1.0
+                        }</span> else<span class="cov6" title="6"> {
+                                S = 0.0
+                        }</span>
+
+                        // calculate the expected score
+                        <span class="cov9" title="12">E := 1.0 / (1.0 + math.Pow(10, float64(opponentELO-curELO)/400))
+
+                        // update the driver's ELO change
+                        result.Player.ELOChange += int(math.Round(float64(kValue) * (S - E)))</span>
+                }
+
+                // update the driver's ELO
+                <span class="cov5" title="4">result.Player.ELO += result.Player.ELOChange
+                matchDiff = append(matchDiff, MatchDiff{
+                        Player: result.Player,
+                        Diff:   result.Player.ELOChange,
+                })</span>
+        }
+
+        // update the drivers' ELOs
+        <span class="cov1" title="1">for _, result := range populatedResults </span><span class="cov5" title="4">{
+                for _, player := range l.Players </span><span class="cov8" title="10">{
+                        if player.Name == result.Player.Name </span><span class="cov5" title="4">{
+                                player.ELO = result.Player.ELO
+
+                                player.Stats.MatchesPlayed += 1
+                                if result.Position == 1 </span><span class="cov1" title="1">{
+                                        player.Stats.MatchesWon++
+                                }</span>
+
+                                <span class="cov5" title="4">player.Stats.AllTimeAveragePlace += float64(result.Position)
+
+                                player.Stats.Last5Finish = append(player.Stats.Last5Finish, result.Position)
+                                if len(player.Stats.Last5Finish) &gt; 5 </span><span class="cov0" title="0">{
+                                        player.Stats.Last5Finish = player.Stats.Last5Finish[1:]
+                                }</span>
+
+                                <span class="cov5" title="4">if player.ELO &gt; player.Stats.PeakELO </span><span class="cov3" title="2">{
+                                        player.Stats.PeakELO = player.ELO
+                                }</span>
+                                <span class="cov5" title="4">break</span>
+                        }
+                }
+        }
+
+        // create the event
+        <span class="cov1" title="1">err := l.createEvent(populatedResults)
+        if err != nil </span><span class="cov0" title="0">{
+                return []MatchDiff{}, err
+        }</span>
+
+        <span class="cov1" title="1">return matchDiff, nil</span>
+}
+
+func (l *League) createEvent(results []*MatchResult) error <span class="cov1" title="1">{
+        event := Match{
+                Results: results,
+                Date:    time.Now(),
+        }
+
+        l.Matches = append(l.Matches, event)
+
+        return nil
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package elo
+
+import "strings"
+
+func (l *League) AddPlayer(name string) error <span class="cov10" title="22">{
+        name = strings.ToLower(name)
+
+        for _, p := range l.Players </span><span class="cov9" title="18">{
+                if strings.ToLower(p.Name) == name </span><span class="cov4" title="3">{
+                        return ErrPlayerAlreadyExists
+                }</span>
+        }
+
+        <span class="cov9" title="19">l.Players = append(l.Players, &amp;Player{
+                Name: name,
+                ELO:  InitialElo,
+                Stats: &amp;PlayerStats{
+                        Last5Finish:         []int{},
+                        MatchesPlayed:       0,
+                        MatchesWon:          0,
+                        AllTimeAveragePlace: 0,
+                        PeakELO:             InitialElo,
+                },
+        })
+
+        return nil</span>
+}
+
+func (l *League) GetPlayer(name string) (*Player, error) <span class="cov7" title="10">{
+        name = strings.ToLower(name)
+
+        for _, p := range l.Players </span><span class="cov9" title="16">{
+                if strings.ToLower(p.Name) == name </span><span class="cov7" title="9">{
+                        return p, nil
+                }</span>
+        }
+
+        <span class="cov1" title="1">return nil, ErrPlayerNotFound</span>
+}
+
+func (l *League) RemovePlayer(name string) error <span class="cov3" title="2">{
+        name = strings.ToLower(name)
+
+        for i, p := range l.Players </span><span class="cov1" title="1">{
+                if strings.ToLower(p.Name) == name </span><span class="cov1" title="1">{
+                        l.Players = append(l.Players[:i], l.Players[i+1:]...)
+                        return nil
+                }</span>
+        }
+
+        <span class="cov1" title="1">return ErrPlayerNotFound</span>
+}
+
+func (l *League) ResetPlayers() <span class="cov3" title="2">{
+        for _, p := range l.Players </span><span class="cov4" title="3">{
+                p.ELO = InitialElo
+                p.Stats = &amp;PlayerStats{}
+        }</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
