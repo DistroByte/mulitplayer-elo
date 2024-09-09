@@ -3,9 +3,16 @@ package multielo
 import (
 	"errors"
 	"fmt"
+	"image/color"
 	"math"
+	"strconv"
 	"strings"
 	"time"
+
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
+	"gonum.org/v1/plot/vg/draw"
 )
 
 var (
@@ -18,10 +25,18 @@ var (
 	ErrInvalidPlayerStats  = errors.New("invalid player stats")
 	ErrInvalidLeague       = errors.New("invalid league")
 	ErrNoPlayers           = errors.New("no players")
+	colors                 = []color.Color{
+		color.RGBA{R: 255, A: 255},
+		color.RGBA{G: 255, A: 255},
+		color.RGBA{B: 255, A: 255},
+		color.RGBA{R: 255, G: 255, A: 255},
+		color.RGBA{R: 255, B: 255, A: 255},
+		color.RGBA{G: 255, B: 255, A: 255},
+	}
 )
 
 const (
-	InitialElo = 1000
+	InitialELO = 1000
 )
 
 type Player struct {
@@ -200,13 +215,13 @@ func (l *League) AddPlayer(name string) error {
 
 	l.Players = append(l.Players, &Player{
 		Name: name,
-		ELO:  InitialElo,
+		ELO:  InitialELO,
 		Stats: &PlayerStats{
 			Last5Finish:         []int{},
 			MatchesPlayed:       0,
 			MatchesWon:          0,
 			AllTimeAveragePlace: 0,
-			PeakELO:             InitialElo,
+			PeakELO:             InitialELO,
 		},
 	})
 
@@ -240,7 +255,177 @@ func (l *League) RemovePlayer(name string) error {
 
 func (l *League) ResetPlayers() {
 	for _, p := range l.Players {
-		p.ELO = InitialElo
+		p.ELO = InitialELO
 		p.Stats = &PlayerStats{}
 	}
+}
+
+func (l *League) GetPlayers() []*Player {
+	return l.Players
+}
+
+func (l *League) GetMatches() []Match {
+	return l.Matches
+}
+
+func (l *League) GetPlayerStats(name string) (*PlayerStats, error) {
+	p, err := l.GetPlayer(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.Stats, nil
+}
+
+func (l *League) GetPlayerELO(name string) (int, error) {
+	p, err := l.GetPlayer(name)
+	if err != nil {
+		return 0, ErrInvalidPlayer
+	}
+
+	return p.ELO, nil
+}
+
+func (l *League) GenerateGraph() (string, error) {
+	if len(l.Players) == 0 {
+		return "", ErrNoPlayers
+	}
+
+	// sort the drivers by ELO
+	for i := 0; i < len(l.Players); i++ {
+		for j := i + 1; j < len(l.Players); j++ {
+			if l.Players[i].ELO < l.Players[j].ELO {
+				l.Players[i], l.Players[j] = l.Players[j], l.Players[i]
+			}
+		}
+	}
+
+	p := plot.New()
+	p.Title.Text = "ELO over time"
+	p.X.Label.Text = "Races"
+	p.Y.Label.Text = "ELO"
+
+	// add a grid
+	p.Add(plotter.NewGrid())
+
+	// tick every 5 x values
+	p.X.Tick.Marker = RaceTicker{}
+	p.Y.Tick.Marker = ELOTicker{}
+
+	// pad the y axis a bit
+	p.Y.Min = float64(l.Players[len(l.Players)-1].ELO - 50)
+	p.Y.Max = float64(l.Players[0].ELO + 50)
+
+	// pad the x axis a bit
+	p.X.Min = 0
+
+	for j, player := range l.Players {
+		xys := make(plotter.XYs, len(l.Matches)+1)
+		labels := make([]string, len(l.Matches)+1)
+
+		var firstRaceIndex int = -1
+
+		// loop over every race
+		for i, event := range l.Matches {
+
+			// loop over every result
+			for _, result := range event.Results {
+
+				// if the result is for the driver we're plotting
+				if result.Player.Name == player.Name {
+
+					// and this is the first time we've seen them
+					if firstRaceIndex < 0 {
+						// add the initial ELO to the race before their first
+						xys[i].X = float64(i)
+						xys[i].Y = float64(InitialELO)
+						labels[i] = strconv.Itoa(InitialELO)
+						// and remember the index
+						firstRaceIndex = i
+					}
+
+					// add the ELO for the driver for the current race
+					xys[i+1].X = float64(i + 1)
+					xys[i+1].Y = float64(result.Player.ELO)
+					break
+				} else {
+					// if we haven't seen the driver yet, just copy the last value
+					xys[i+1].X = float64(i)
+					xys[i+1].Y = xys[i].Y
+				}
+			}
+
+			// add an ELO label every 3 races
+			if i%3 == 0 {
+				labels[i+1] = strconv.FormatFloat(xys[i+1].Y, 'f', 0, 64)
+			}
+		}
+
+		if firstRaceIndex < 0 {
+			// set the last value to the initial ELO
+			xys[len(xys)-1].X = float64(len(xys) - 1)
+			xys[len(xys)-1].Y = float64(InitialELO)
+			labels[len(labels)-1] = strconv.Itoa(InitialELO)
+			firstRaceIndex = len(xys) - 1
+		}
+
+		// add the last label
+		labels[len(labels)-1] = strconv.FormatFloat(xys[len(xys)-1].Y, 'f', 0, 64)
+
+		// create a line for the driver
+		line, points, err := plotter.NewLinePoints(xys[firstRaceIndex:])
+		if err != nil {
+			return "", err
+		}
+
+		// create labels for the line
+		label, err := plotter.NewLabels(plotter.XYLabels{
+			XYs:    xys[firstRaceIndex:],
+			Labels: labels[firstRaceIndex:],
+		})
+		if err != nil {
+			return "", err
+		}
+
+		// style the line and points
+		line.Color = colors[j%len(colors)]
+		points.Shape = draw.CircleGlyph{}
+		points.Color = colors[j%len(colors)]
+		line.StepStyle = plotter.NoStep
+
+		// add the line and labels to the plot
+		p.Add(line, points, label)
+
+		// add the driver to the legend
+		p.Legend.Add(fmt.Sprintf("%s (%d)", player.Name, player.ELO), line)
+	}
+
+	if err := p.Save(30*vg.Centimeter, 20*vg.Centimeter, "elo.svg"); err != nil {
+		return "", err
+	}
+
+	if err := p.Save(30*vg.Centimeter, 20*vg.Centimeter, "elo.png"); err != nil {
+		return "", err
+	}
+
+	return "elo.png", nil
+}
+
+type RaceTicker struct{}
+type ELOTicker struct{}
+
+func (t RaceTicker) Ticks(min, max float64) []plot.Tick {
+	var ticks []plot.Tick
+	for i := min + 1; i < max; i += 3 {
+		ticks = append(ticks, plot.Tick{Value: i, Label: strconv.Itoa(int(i))})
+	}
+	return ticks
+}
+
+func (t ELOTicker) Ticks(min, max float64) []plot.Tick {
+	var ticks []plot.Tick
+	for i := min; i < max; i += 10 {
+		ticks = append(ticks, plot.Tick{Value: i, Label: strconv.Itoa(int(i))})
+	}
+	return ticks
 }
