@@ -442,4 +442,23 @@ func TestLeague_GenerateGraph(t *testing.T) {
 	graphPath, err := l.GenerateGraph()
 	assert.NoError(t, err)
 	assert.Equal(t, "elo.png", graphPath)
+
+	err = l.AddPlayer("player3")
+	assert.NoError(t, err)
+
+	player3, err := l.GetPlayer("player3")
+	assert.NoError(t, err)
+
+	results = []*multielo.MatchResult{
+		{Player: player1, Position: 1},
+		{Player: player2, Position: 2},
+		{Player: player3, Position: 3},
+	}
+
+	_, err = l.AddMatch(time.Now(), results...)
+	assert.NoError(t, err)
+
+	graphPath, err = l.GenerateGraph()
+	assert.NoError(t, err)
+	assert.Equal(t, "elo.png", graphPath)
 }
