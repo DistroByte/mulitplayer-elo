@@ -1,8 +1,8 @@
 package multielo_test
 
 import (
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/distrobyte/multielo"
 	"github.com/stretchr/testify/assert"
@@ -236,7 +236,7 @@ func TestMatch_AddMatch(t *testing.T) {
 			{Player: player4, Position: 4},
 		}
 
-		matchDiff, err := l.AddMatch(time.Now(), results...)
+		matchDiff, err := l.AddMatch(results)
 		if err != nil {
 			t.Error(err)
 		}
@@ -312,7 +312,7 @@ func TestMatch_AddMatch(t *testing.T) {
 			{Player: nil, Position: 3},
 		}
 
-		_, err = l.AddMatch(time.Now(), results...)
+		_, err = l.AddMatch(results)
 		if err.Error() != "nil player found. not recording match" {
 			t.Error(err)
 		}
@@ -321,7 +321,7 @@ func TestMatch_AddMatch(t *testing.T) {
 	t.Run("AddMatchLeagueNil", func(t *testing.T) {
 		l := multielo.NewLeague()
 
-		_, err := l.AddMatch(time.Now())
+		_, err := l.AddMatch([]*multielo.MatchResult{})
 		if err != multielo.ErrNoPlayers {
 			t.Error(err)
 		}
@@ -386,7 +386,7 @@ func TestLeague_GetMatches(t *testing.T) {
 		{Player: player2, Position: 2},
 	}
 
-	_, err = l.AddMatch(time.Now(), results...)
+	_, err = l.AddMatch(results)
 	assert.NoError(t, err)
 
 	matches := l.GetMatches()
@@ -426,39 +426,59 @@ func TestLeague_GenerateGraph(t *testing.T) {
 	err = l.AddPlayer("player2")
 	assert.NoError(t, err)
 
-	player1, err := l.GetPlayer("player1")
+	_, err = l.GetPlayer("player1")
 	assert.NoError(t, err)
-	player2, err := l.GetPlayer("player2")
+	_, err = l.GetPlayer("player2")
 	assert.NoError(t, err)
 
-	results := []*multielo.MatchResult{
-		{Player: player1, Position: 1},
-		{Player: player2, Position: 2},
+	var results1 []*multielo.MatchResult
+	for i := 0; i < 2; i++ {
+		results1 = append(results1, &multielo.MatchResult{
+			Player:   &multielo.Player{Name: fmt.Sprintf("player%v", i+1)},
+			Position: i + 1,
+		})
 	}
 
-	_, err = l.AddMatch(time.Now(), results...)
+	_, err = l.AddMatch(results1)
 	assert.NoError(t, err)
 
-	graphPath, err := l.GenerateGraph()
 	assert.NoError(t, err)
-	assert.Equal(t, "elo.png", graphPath)
 
 	err = l.AddPlayer("player3")
 	assert.NoError(t, err)
 
-	player3, err := l.GetPlayer("player3")
+	_, err = l.GetPlayer("player3")
 	assert.NoError(t, err)
 
-	results = []*multielo.MatchResult{
-		{Player: player1, Position: 1},
-		{Player: player2, Position: 2},
-		{Player: player3, Position: 3},
+	var results2 []*multielo.MatchResult
+	for i := 0; i < 3; i++ {
+		results2 = append(results2, &multielo.MatchResult{
+			Player:   &multielo.Player{Name: fmt.Sprintf("player%v", i+1)},
+			Position: i + 1,
+		})
 	}
 
-	_, err = l.AddMatch(time.Now(), results...)
+	_, err = l.AddMatch(results2)
 	assert.NoError(t, err)
 
-	graphPath, err = l.GenerateGraph()
+	err = l.AddPlayer("player4")
+	assert.NoError(t, err)
+
+	_, err = l.GetPlayer("player4")
+	assert.NoError(t, err)
+
+	var results3 []*multielo.MatchResult
+	for i := 0; i < 3; i++ {
+		results3 = append(results3, &multielo.MatchResult{
+			Player:   &multielo.Player{Name: fmt.Sprintf("player%v", i+1)},
+			Position: i + 1,
+		})
+	}
+
+	_, err = l.AddMatch(results3)
+	assert.NoError(t, err)
+
+	graphPath, err := l.GenerateGraph()
 	assert.NoError(t, err)
 	assert.Equal(t, "elo.png", graphPath)
 }
